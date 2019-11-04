@@ -1,0 +1,59 @@
+version: '2'
+
+vars:
+  GOOSEIO: -path=./tool
+
+tasks:
+  default:
+    cmds:
+      - task dependencies
+      - task up
+      - task generate-dbconf
+      - task init
+      - task migration
+
+  dependencies:
+    desc: Install dependencies.
+    cmds:
+      - go install bitbucket.org/liamstask/goose/cmd/goose
+
+  up:
+    desc: Start database container.
+    cmds:
+      - docker-compose up -d
+
+  down:
+    desc: Stop database container.
+    cmds:
+      - docker-compose down
+
+  init:
+    desc: Initialize database schema
+    cmds:
+      - MYSQL_PWD=${DB_PASS} mysql -u ${DB_USER} -h ${DB_HOST} -P ${DB_PORT} --protocol=tcp -e "DROP DATABASE IF EXISTS ${DB_NAME}"
+      - MYSQL_PWD=${DB_PASS} mysql -u ${DB_USER} -h ${DB_HOST} -P ${DB_PORT} --protocol=tcp -e "CREATE DATABASE ${DB_NAME}"
+
+  generate-dbconf:
+    desc: Generate dbconf for goose.
+    cmds:
+      - go run internal/cmd/confgen/main.go > tool/dbconf.yml
+
+  migration:
+    desc: apply migrations.
+    cmds:
+      - bin/goose -path=tool up
+
+  run:
+    desc: run example.
+    cmds:
+      - go run examples/create/main.go
+
+  debug:
+    desc: run delve.
+    cmds:
+      - dlv debug create.go
+
+  sleep:
+    desc: sleep
+    cmds:
+      - sleep 10
