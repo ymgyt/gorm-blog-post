@@ -6,8 +6,9 @@ vars:
 tasks:
   default:
     cmds:
-      - task dependencies
       - task up
+      - task dependencies
+      - task vendor
       - task generate-dbconf
       - task init
       - task migration
@@ -57,3 +58,8 @@ tasks:
     desc: sleep
     cmds:
       - sleep 10
+
+  vendor:
+    desc: Run go mod vendor
+    cmds:
+      - go mod vendor

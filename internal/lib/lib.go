@@ -7,8 +7,8 @@ import (
 	"os"
 	"text/template"
 
-	"github.com/ymgyt/gorm"
-	_ "github.com/ymgyt/gorm/dialects/mysql"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
 )
 
 func Connect() *gorm.DB {

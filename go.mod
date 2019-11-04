@@ -18,7 +18,6 @@ require (
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/radovskyb/watcher v1.0.7 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/ymgyt/gorm v0.0.0-00010101000000-000000000000
 	github.com/ziutek/mymysql v1.5.4 // indirect
 	golang.org/x/crypto v0.0.0-20191029031824-8986dd9e96cf // indirect
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
@@ -26,4 +25,4 @@ require (
 	mvdan.cc/sh v2.6.4+incompatible // indirect
 )
 
-replace github.com/ymgyt/gorm => ../gorm
+replace github.com/jinzhu/gorm => ./vendor/github.com/jinzhu/gorm
