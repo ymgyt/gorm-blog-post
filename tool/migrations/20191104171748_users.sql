@@ -7,9 +7,21 @@ CREATE TABLE `users`
     `name`            varchar(100)    NOT NULL,
     `has_default`     varchar(100) DEFAULT 'DB-GENERATE-DEFAULT-VALUE',
     `my_scan`         varchar(100),
+    `user_meta`            text,
     `created_at`      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at`      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)
+)
+    ENGINE = InnoDB;
+
+DROP TABLE IF EXISTS `settings`;
+CREATE TABLE `settings`
+(
+    `id`      bigint unsigned NOT NULL AUTO_INCREMENT,
+    `user_id` bigint unsigned NOT NULL,
+    `lang`    varchar(100) NOT NULL,
+    PRIMARY KEY (`id`),
+    FOREIGN KEY (`user_id`) REFERENCES users (`id`)
 )
     ENGINE = InnoDB;
 

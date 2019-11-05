@@ -14,6 +14,10 @@ func main() {
 		Profiles: []model.Profile{
 			{FirstName: "P1", LastName: "gopher"},
 		},
+		Base: model.Base{Meta: "metavalue"},
+		Setting: model.Setting{
+			Lang: "JP",
+		},
 	}
 
 	if err := db.Save(&u).Error; err != nil {

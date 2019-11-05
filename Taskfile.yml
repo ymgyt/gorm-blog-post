@@ -47,7 +47,7 @@ tasks:
   run:
     desc: run example.
     cmds:
-      - go run examples/create/main.go
+      - go run create.go
 
   debug:
     desc: run delve.
