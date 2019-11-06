@@ -215,14 +215,9 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 					indirectType = indirectType.Elem()
 				}
 
-				// Memo:
-				// reflect.New() return Pointer(indirectType)
 				fieldValue := reflect.New(indirectType).Interface()
 				if _, isScanner := fieldValue.(sql.Scanner); isScanner {
 					// is scanner
-
-					// Memo:
-					// sql.Scannerを実装した型のfiledのtagに定義されている値と、Scannerを実装したstructのfieldに定義されたgormのtagをmergeしている。
 					field.IsScanner, field.IsNormal = true, true
 					if indirectType.Kind() == reflect.Struct {
 						for i := 0; i < indirectType.NumField(); i++ {
@@ -240,14 +235,11 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 					// is embedded struct
 					for _, subField := range scope.New(fieldValue).GetModelStruct().StructFields {
 						subField = subField.clone()
-						// Memo: ["Base", "Meta"]
 						subField.Names = append([]string{fieldStruct.Name}, subField.Names...)
 						if prefix, ok := field.TagSettingsGet("EMBEDDED_PREFIX"); ok {
-							// Memo: user_ + meta
 							subField.DBName = prefix + subField.DBName
 						}
 
-						// Memo: PRIMARY_KEY tagもっていないで、PrimaryKey判定されるのはどんなときかわかっていない
 						if subField.IsPrimaryKey {
 							if _, ok := subField.TagSettingsGet("PRIMARY_KEY"); ok {
 								modelStruct.PrimaryFields = append(modelStruct.PrimaryFields, subField)
@@ -256,7 +248,6 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 							}
 						}
 
-						// Memo: JoinTableHandler理解してからここ読む
 						if subField.Relationship != nil && subField.Relationship.JoinTableHandler != nil {
 							if joinTableHandler, ok := subField.Relationship.JoinTableHandler.(*JoinTableHandler); ok {
 								newJoinTableHandler := &JoinTableHandler{}
@@ -449,13 +440,10 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 							}
 						}(field)
 					case reflect.Struct:
-						// Memo: deferしている理由がわかっていない。
 						defer func(field *StructField) {
 							var (
 								// user has one profile, associationType is User, profile use UserID as foreign key
 								// user belongs to profile, associationType is Profile, user use ProfileID as foreign key
-
-								// Memo: ValueのType
 								associationType           = reflectType.Name()
 								relationship              = &Relationship{}
 								toScope                   = scope.New(reflect.New(field.Struct.Type).Interface())
@@ -464,8 +452,6 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 								tagAssociationForeignKeys []string
 							)
 
-							___x := "a"
-							_ = ___x
 							if foreignKey, _ := field.TagSettingsGet("FOREIGNKEY"); foreignKey != "" {
 								tagForeignKeys = strings.Split(foreignKey, ",")
 							}
@@ -497,12 +483,15 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 							{
 								var foreignKeys = tagForeignKeys
 								var associationForeignKeys = tagAssociationForeignKeys
+
 								// if no foreign keys defined with tag
 								if len(foreignKeys) == 0 {
 									// if no association foreign keys defined with tag
 									if len(associationForeignKeys) == 0 {
 										for _, primaryField := range modelStruct.PrimaryFields {
+											// Memo: User+ID
 											foreignKeys = append(foreignKeys, associationType+primaryField.Name)
+											// Memo: ID
 											associationForeignKeys = append(associationForeignKeys, primaryField.Name)
 										}
 									} else {
@@ -518,7 +507,9 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 									// generate association foreign keys from foreign keys
 									if len(associationForeignKeys) == 0 {
 										for _, foreignKey := range foreignKeys {
+											// Memo: UserRef, User
 											if strings.HasPrefix(foreignKey, associationType) {
+												// Memo: Ref
 												associationForeignKey := strings.TrimPrefix(foreignKey, associationType)
 												if foreignField := getForeignField(associationForeignKey, modelStruct.StructFields); foreignField != nil {
 													associationForeignKeys = append(associationForeignKeys, associationForeignKey)

@@ -16,6 +16,11 @@ type Setting struct {
 	Lang   string
 }
 
+type Description struct {
+	ID          uint64
+	Description string
+}
+
 type User struct {
 	ID         uint64
 	Name       string
@@ -28,7 +33,12 @@ type User struct {
 	// prefix + embedded struct field
 	Base Base `gorm:"EMBEDDED;EMBEDDED_PREFIX:user_"`
 
+	// HasOne
 	Setting Setting
+
+	// BelongTo
+	DescriptionID uint64
+	Description   Description
 
 	// Anonymous struct {
 	// 	AnonymousField string

@@ -3,7 +3,6 @@ module github.com/jinzhu/gorm
 go 1.12
 
 require (
-	github.com/davecgh/go-spew v1.1.1
 	github.com/denisenkom/go-mssqldb v0.0.0-20190515213511-eb9f6a1743f3
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5
 	github.com/go-sql-driver/mysql v1.4.1
