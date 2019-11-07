@@ -21,6 +21,7 @@ tasks:
     desc: Start database container.
     cmds:
       - docker-compose up -d
+      - /Users/ymgyt/ws/tcpwait/target/debug/tcpwait localhost:${DB_PORT}
 
   down:
     desc: Stop database container.
