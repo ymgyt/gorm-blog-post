@@ -489,9 +489,8 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 									// if no association foreign keys defined with tag
 									if len(associationForeignKeys) == 0 {
 										for _, primaryField := range modelStruct.PrimaryFields {
-											// Memo: User+ID
+											// Memo: Post + ID
 											foreignKeys = append(foreignKeys, associationType+primaryField.Name)
-											// Memo: ID
 											associationForeignKeys = append(associationForeignKeys, primaryField.Name)
 										}
 									} else {
@@ -507,7 +506,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 									// generate association foreign keys from foreign keys
 									if len(associationForeignKeys) == 0 {
 										for _, foreignKey := range foreignKeys {
-											// Memo: UserRef, User
+											// Memo: PostRef, Post
 											if strings.HasPrefix(foreignKey, associationType) {
 												// Memo: Ref
 												associationForeignKey := strings.TrimPrefix(foreignKey, associationType)
@@ -517,6 +516,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 											}
 										}
 										if len(associationForeignKeys) == 0 && len(foreignKeys) == 1 {
+											// Memo: ContentがPostRefでPostを参照しているがPost側にはRef fieldがない場合
 											associationForeignKeys = []string{scope.PrimaryKey()}
 										}
 									} else if len(foreignKeys) != len(associationForeignKeys) {
@@ -525,6 +525,8 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 									}
 								}
 
+								// Memo: belong_toの場合、toFields(association先のmodelのfields)にPostIDがない
+								//       そのため、このloopはまわらずに、このさきのelseに落ちる。
 								for idx, foreignKey := range foreignKeys {
 									if foreignField := getForeignField(foreignKey, toFields); foreignField != nil {
 										if scopeField := getForeignField(associationForeignKeys[idx], modelStruct.StructFields); scopeField != nil {
@@ -545,6 +547,8 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 								relationship.Kind = "has_one"
 								field.Relationship = relationship
 							} else {
+								// Memo: この分岐ロジックがgormのhas_oneとbelong_toの違い。
+								//       つまり、PostIDがassociation先のfiledにあるかどうか。
 								var foreignKeys = tagForeignKeys
 								var associationForeignKeys = tagAssociationForeignKeys
 
