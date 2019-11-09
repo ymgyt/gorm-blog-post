@@ -15,13 +15,13 @@ tasks:
   dependencies:
     desc: Install dependencies.
     cmds:
-      - go install bitbucket.org/liamstask/goose/cmd/goose
+      - cargo install tcpwait
 
   up:
     desc: Start database container.
     cmds:
       - docker-compose up -d
-      - /Users/ymgyt/ws/tcpwait/target/debug/tcpwait localhost:${DB_PORT}
+      - tcpwait localhost:${DB_PORT}
 
   down:
     desc: Stop database container.
@@ -34,15 +34,10 @@ tasks:
       - MYSQL_PWD=${DB_PASS} mysql -u ${DB_USER} -h ${DB_HOST} -P ${DB_PORT} --protocol=tcp -e "DROP DATABASE IF EXISTS ${DB_NAME}"
       - MYSQL_PWD=${DB_PASS} mysql -u ${DB_USER} -h ${DB_HOST} -P ${DB_PORT} --protocol=tcp -e "CREATE DATABASE ${DB_NAME}"
 
-  generate-dbconf:
-    desc: Generate dbconf for goose.
-    cmds:
-      - go run internal/cmd/confgen/main.go > tool/dbconf.yml
-
   migration:
     desc: apply migrations.
     cmds:
-      - bin/goose -path=tool up
+      - migrate -database="mysql://${DB_USER}:${DB_PASS}@tcp(${DB_HOST}:${DB_PORT})/${DB_NAME}" -path=migrations up
 
   run:
     desc: run example.
@@ -53,8 +48,3 @@ tasks:
     desc: run delve.
     cmds:
       - dlv debug create.go
-
-  sleep:
-    desc: sleep
-    cmds:
-      - sleep 10

@@ -1,4 +1,0 @@
-# goose
-development:
-  driver: mysql
-  open: ymgyt:happydeveloping@tcp(127.0.0.1:9201)/gormhandson
