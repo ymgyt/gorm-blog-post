@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/davecgh/go-spew/spew"
 	"github.com/ymgyt/gorm-blog-post/internal/lib"
 	"github.com/ymgyt/gorm-blog-post/internal/model"
 )
@@ -37,9 +38,6 @@ func main() {
 	if err := db.Save(&post1).Error; err != nil {
 		panic(err)
 	}
+	spew.Dump(db.NewScope(&post1).Fields())
 
-	// spew.Dump(post1)
-
-	// ms := db.NewScope(&post1).GetModelStruct()
-	// spew.Dump(ms)
 }

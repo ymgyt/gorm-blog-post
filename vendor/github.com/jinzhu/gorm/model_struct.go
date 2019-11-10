@@ -248,6 +248,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 							}
 						}
 
+						// Memo: ここにはいる状況追えてない
 						if subField.Relationship != nil && subField.Relationship.JoinTableHandler != nil {
 							if joinTableHandler, ok := subField.Relationship.JoinTableHandler.(*JoinTableHandler); ok {
 								newJoinTableHandler := &JoinTableHandler{}
