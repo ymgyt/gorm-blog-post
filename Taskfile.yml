@@ -8,14 +8,13 @@ tasks:
     cmds:
       - task up
       - task dependencies
-      - task generate-dbconf
       - task init
       - task migration
 
   dependencies:
     desc: Install dependencies.
     cmds:
-      - cargo install tcpwait
+      # - cargo install tcpwait
 
   up:
     desc: Start database container.

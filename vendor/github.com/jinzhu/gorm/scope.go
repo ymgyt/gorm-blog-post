@@ -206,6 +206,7 @@ func (scope *Scope) HasColumn(column string) bool {
 
 // SetColumn to set the column's value, column could be field or field's name/dbname
 func (scope *Scope) SetColumn(column interface{}, value interface{}) error {
+	// Memo: Authorの場合、AuthorIDと生成されたAuthorのID(14とか)
 	var updateAttrs = map[string]interface{}{}
 	if attrs, ok := scope.InstanceGet("gorm:update_attrs"); ok {
 		updateAttrs = attrs.(map[string]interface{})
@@ -221,6 +222,7 @@ func (scope *Scope) SetColumn(column interface{}, value interface{}) error {
 			mostMatchedField *Field
 		)
 		for _, field := range scope.Fields() {
+			// Memo: field名とセットした値を比較するケースがわかっていない
 			if field.DBName == value {
 				updateAttrs[field.DBName] = value
 				return field.Set(value)
@@ -231,6 +233,7 @@ func (scope *Scope) SetColumn(column interface{}, value interface{}) error {
 		}
 
 		if mostMatchedField != nil {
+			// Memo: author_id: 14
 			updateAttrs[mostMatchedField.DBName] = value
 			return mostMatchedField.Set(value)
 		}

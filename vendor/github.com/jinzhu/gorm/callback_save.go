@@ -83,7 +83,9 @@ func saveBeforeAssociationsCallback(scope *Scope) {
 			if saveReference {
 				if len(relationship.ForeignFieldNames) != 0 {
 					// set value's foreign key
+					// Memo: Post.Authorの場合、AuthorID
 					for idx, fieldName := range relationship.ForeignFieldNames {
+						// Memo: id
 						associationForeignName := relationship.AssociationForeignDBNames[idx]
 						if foreignField, ok := scope.New(fieldValue).FieldByName(associationForeignName); ok {
 							scope.Err(scope.SetColumn(fieldName, foreignField.Field.Interface()))
