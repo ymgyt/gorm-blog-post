@@ -32,9 +32,11 @@ func (field *Field) Set(value interface{}) (err error) {
 
 	fieldValue := field.Field
 	if reflectValue.IsValid() {
+		// Memo: string型のfiledに対して、 interface{}("hello")のvalueはConvertibleTo
 		if reflectValue.Type().ConvertibleTo(fieldValue.Type()) {
 			fieldValue.Set(reflectValue.Convert(fieldValue.Type()))
 		} else {
+			// Memo: *time.Time型のfieldに対して、time.Time型のvalueはここにはいる
 			if fieldValue.Kind() == reflect.Ptr {
 				if fieldValue.IsNil() {
 					fieldValue.Set(reflect.New(field.Struct.Type.Elem()))
@@ -45,6 +47,7 @@ func (field *Field) Set(value interface{}) (err error) {
 			if reflectValue.Type().ConvertibleTo(fieldValue.Type()) {
 				fieldValue.Set(reflectValue.Convert(fieldValue.Type()))
 			} else if scanner, ok := fieldValue.Addr().Interface().(sql.Scanner); ok {
+				// Memo: pointerの変換でcastできなければ、Scanner実装だろうということでtryする
 				v := reflectValue.Interface()
 				if valuer, ok := v.(driver.Valuer); ok {
 					if v, err = valuer.Value(); err == nil {

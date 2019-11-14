@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -37,17 +38,26 @@ const (
 )
 
 func (pk *PostKind) Scan(src interface{}) error {
-	n, ok := src.(int)
-	if !ok {
-		return fmt.Errorf("invalid src %v", src)
+	parse := func(n int) {
+		switch PostKind(n) {
+		case Normal:
+			*pk = Normal
+		case NativeAd:
+			*pk = NativeAd
+		default:
+			*pk = Undefined
+		}
 	}
-	switch v := PostKind(n); v {
-	case Normal:
-		*pk = Normal
-	case NativeAd:
-		*pk = NativeAd
-	default:
-		*pk = Undefined
+
+	switch v := src.(type) {
+	case int:
+		parse(v)
+	case string:
+		n, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return fmt.Errorf("failed to scan PostKind: %w", err)
+		}
+		parse(int(n))
 	}
 
 	return nil
@@ -90,6 +100,7 @@ type Post struct {
 
 	Style Style `gorm:"EMBEDDED; EMBEDDED_PREFIX:post_"`
 
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	PublishedAt *time.Time
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }

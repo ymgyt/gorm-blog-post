@@ -69,6 +69,7 @@ func createCallback(scope *Scope) {
 					}
 				} else if field.Relationship != nil && field.Relationship.Kind == "belongs_to" {
 					for _, foreignKey := range field.Relationship.ForeignDBNames {
+						// Memo: このchangeableFieldのcheckの意図わかっていない
 						if foreignField, ok := scope.FieldByName(foreignKey); ok && !scope.changeableField(foreignField) {
 							columns = append(columns, scope.Quote(foreignField.DBName))
 							placeholders = append(placeholders, scope.AddToVars(foreignField.Field.Interface()))

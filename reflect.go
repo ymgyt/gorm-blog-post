@@ -3,21 +3,24 @@ package main
 import (
 	"fmt"
 	"reflect"
-	"time"
 )
 
 func main() {
-	var t = time.Now()
-	typ := reflect.TypeOf(t)
-	fmt.Printf("%v\n", typ)
-
-	v := reflect.New(typ).Interface()
-
-	if t1, ok := v.(time.Time); ok {
-		fmt.Printf("can cast time.Time %v\n", t1)
+	type A struct {
+		N int
 	}
 
-	if t2, ok := v.(*time.Time); ok {
-		fmt.Printf("can cast *time.Time %v\n", t2)
-	}
+	a := A{N: 100}
+
+	rv := reflect.ValueOf(&a).Elem()
+
+	nv := rv.FieldByName("N")
+
+	var n int = 300
+	newV := interface{}(n)
+	newVr := reflect.ValueOf(newV)
+
+	nv.Set(newVr.Convert(nv.Type()))
+
+	fmt.Printf("%v\n", a)
 }

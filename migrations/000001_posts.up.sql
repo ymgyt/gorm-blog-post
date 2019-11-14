@@ -11,14 +11,15 @@ CREATE TABLE IF NOT EXISTS `authors`
 
 CREATE TABLE IF NOT EXISTS `posts`
 (
-    `id`         bigint unsigned NOT NULL AUTO_INCREMENT,
-    `kind`       int             NOT NULL,
-    `title`      varchar(100)    NOT NULL,
-    `author_id`  bigint unsigned NOT NULL,
-    `post_font`  varchar(100)    NOT NULL,
-    `post_theme` varchar(100)    NOT NULL,
-    `created_at` DATETIME        NOT NULL,
-    `updated_at` DATETIME        NOT NULL,
+    `id`           bigint unsigned NOT NULL AUTO_INCREMENT,
+    `kind`         int             NOT NULL,
+    `title`        varchar(100)    NOT NULL,
+    `author_id`    bigint unsigned NOT NULL,
+    `post_font`    varchar(100)    NOT NULL,
+    `post_theme`   varchar(100)    NOT NULL,
+    `published_at` DATETIME,
+    `created_at`   DATETIME        NOT NULL,
+    `updated_at`   DATETIME        NOT NULL,
     PRIMARY KEY (`id`),
     FOREIGN KEY (`author_id`) REFERENCES `authors` (`id`)
 )

@@ -20,7 +20,7 @@ tasks:
     desc: Start database container.
     cmds:
       - docker-compose up -d
-      - tcpwait localhost:${DB_PORT}
+      - (which tcpwait 1> /dev/null && tcpwait localhost:${DB_PORT} || sleep 3)
 
   down:
     desc: Stop database container.
