@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/ymgyt/gorm-blog-post/internal/lib"
 	"github.com/ymgyt/gorm-blog-post/internal/model"
 )
@@ -46,14 +48,18 @@ func main() {
 
 	db = db.LogMode(true)
 	var post2 model.Post
-	if err := db.
+	db = db.
 		Where(model.Post{ID: post1.ID}).
 		Preload("Author").
 		Preload("Content").
 		Preload("Meta").
 		Preload("Comments").
 		Preload("Tags").
-		Find(&post2).Error; err != nil {
-		panic(err)
+		Set("gorm:query_option", "FOR UPDATE").
+		Find(&post2)
+	if db.Error != nil {
+		panic(db.Error)
 	}
+	fmt.Println(db.RowsAffected)
+	spew.Dump(post2)
 }

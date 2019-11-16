@@ -76,6 +76,8 @@ func queryCallback(scope *Scope) {
 					elem = reflect.New(resultType).Elem()
 				}
 
+				// Memo: resultsが[]stringだと scope.New(string).Fields()だけど問題ないのか
+				// => scope.GetModelStructはvalueがstruct以外だと空を返すので、問題ない
 				scope.scan(rows, columns, scope.New(elem.Addr().Interface()).Fields())
 
 				if isSlice {

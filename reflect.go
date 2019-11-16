@@ -6,21 +6,18 @@ import (
 )
 
 func main() {
-	type A struct {
-		N int
-	}
+	var i int = 10
 
-	a := A{N: 100}
+	rv := reflect.New(reflect.PtrTo(reflect.TypeOf(i)))
+	fmt.Printf("%v %v\n", rv.Type(), rv.Kind())
 
-	rv := reflect.ValueOf(&a).Elem()
+	var ii int = 20
+	rv.Elem().Set(reflect.ValueOf(&ii).Elem().Addr())
 
-	nv := rv.FieldByName("N")
+	v := rv.Interface().(**int)
+	fmt.Printf("%#v\n", v)
+	g := 200
+	*v = &g
 
-	var n int = 300
-	newV := interface{}(n)
-	newVr := reflect.ValueOf(newV)
-
-	nv.Set(newVr.Convert(nv.Type()))
-
-	fmt.Printf("%v\n", a)
+	fmt.Println(i)
 }

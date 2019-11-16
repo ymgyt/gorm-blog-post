@@ -500,6 +500,7 @@ func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
 				if field.Field.Kind() == reflect.Ptr {
 					values[index] = field.Field.Addr().Interface()
 				} else {
+					// Memo: field.Struct.TypeがintだとするとreflectValueは**int
 					reflectValue := reflect.New(reflect.PtrTo(field.Struct.Type))
 					reflectValue.Elem().Set(field.Field.Addr())
 					values[index] = reflectValue.Interface()

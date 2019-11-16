@@ -104,3 +104,7 @@ type Post struct {
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
+
+// func (p Post) String() string {
+// 	return "aaaa"
+// }
