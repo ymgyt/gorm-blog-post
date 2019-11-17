@@ -13,9 +13,16 @@ type Meta struct {
 	ResourceType string
 }
 
+type Review struct {
+	ID       uint
+	Body     string
+	AuthorID uint
+}
+
 type Author struct {
-	ID   uint
-	Name string
+	ID      uint
+	Name    string
+	Reviews []Review
 }
 
 type Comment struct {

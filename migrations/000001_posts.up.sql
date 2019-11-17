@@ -1,10 +1,22 @@
 BEGIN;
 
+
 CREATE TABLE IF NOT EXISTS `authors`
 (
     `id`      bigint unsigned NOT NULL AUTO_INCREMENT,
     `name`    varchar(100)    NOT NULL,
     PRIMARY KEY (`id`)
+)
+    ENGINE = InnoDB;
+
+
+CREATE TABLE IF NOT EXISTS `reviews`
+(
+    `id`        bigint unsigned NOT NULL AUTO_INCREMENT,
+    `body`      text            NOT NULL,
+    `author_id` bigint unsigned NOT NULL,
+    PRIMARY KEY (`id`),
+    FOREIGN KEY (`author_id`) REFERENCES `authors` (`id`)
 )
     ENGINE = InnoDB;
 

@@ -27,8 +27,8 @@ tasks:
     cmds:
       - docker-compose down
 
-  init:
-    desc: Initialize database schema
+  reset:
+    desc: Reset database schema
     cmds:
       - MYSQL_PWD=${DB_PASS} mysql -u ${DB_USER} -h ${DB_HOST} -P ${DB_PORT} --protocol=tcp -e "DROP DATABASE IF EXISTS ${DB_NAME}"
       - MYSQL_PWD=${DB_PASS} mysql -u ${DB_USER} -h ${DB_HOST} -P ${DB_PORT} --protocol=tcp -e "CREATE DATABASE ${DB_NAME}"

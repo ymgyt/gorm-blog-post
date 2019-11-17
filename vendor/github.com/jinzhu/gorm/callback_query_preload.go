@@ -33,8 +33,10 @@ func preloadCallback(scope *Scope) {
 		fields       = scope.Fields()
 	)
 
+	// Memo: Author, Author.Reviews
 	for _, preload := range scope.Search.preload {
 		var (
+			// Memo: ["Author", "Reviews"]
 			preloadFields = strings.Split(preload.schema, ".")
 			currentScope  = scope
 			currentFields = fields

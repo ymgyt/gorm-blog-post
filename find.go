@@ -23,6 +23,9 @@ func main() {
 		},
 		Author: model.Author{
 			Name: "ymgyt",
+			Reviews: []model.Review{
+				{Body: "review 1"},
+			},
 		},
 		Comments: []model.Comment{
 			{Body: "comment 1"},
@@ -41,7 +44,7 @@ func main() {
 		PublishedAt: &now,
 	}
 
-	db = db.LogMode(false)
+	db = db.LogMode(true)
 	if err := db.Save(&post1).Error; err != nil {
 		panic(err)
 	}
@@ -51,10 +54,12 @@ func main() {
 	db = db.
 		Where(model.Post{ID: post1.ID}).
 		Preload("Author").
-		Preload("Content").
-		Preload("Meta").
-		Preload("Comments").
-		Preload("Tags").
+		Preload("Author.Reviews").
+		// Preload("Content").
+		// Preload("Meta").
+		// Preload("Comments").
+		// Preload("Tags").
+		// Set("gorm:auto_preload", true).
 		Set("gorm:query_option", "FOR UPDATE").
 		Find(&post2)
 	if db.Error != nil {
