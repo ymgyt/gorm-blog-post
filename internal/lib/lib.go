@@ -29,7 +29,6 @@ func Connect() *gorm.DB {
 		panic(err)
 	}
 	db.LogMode(true)
-	db = db.Set("skip_bindvar", true)
 
 	return db
 }

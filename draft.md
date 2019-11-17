@@ -7,6 +7,8 @@
 - [ ] callbackのRegister
 - [ ] search.Scope.Unscopedのやくわりについて
 - [ ] callback一通りよんで、今のmodelで説明できるかかためる。そうするとmodelの紹介かける。
+- Association
+- Delete Nested
 
 
 本記事では、goのORM library [gorm](https://github.com/jinzhu/gorm)のAPIについて解説していきます。

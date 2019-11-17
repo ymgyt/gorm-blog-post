@@ -22,6 +22,7 @@ func init() {
 
 // assignUpdatingAttributesCallback assign updating attributes to model
 func assignUpdatingAttributesCallback(scope *Scope) {
+	// Memo: Hooksやassociationのupdateをおこないたくない場合のハンドリング
 	if attrs, ok := scope.InstanceGet("gorm:update_interface"); ok {
 		if updateMaps, hasUpdate := scope.updatedAttrsWithValues(attrs); hasUpdate {
 			scope.InstanceSet("gorm:update_attrs", updateMaps)
@@ -59,6 +60,7 @@ func updateCallback(scope *Scope) {
 	if !scope.HasError() {
 		var sqls []string
 
+		// Memo: associationにさわりたくない場合にはattrだけ渡して更新していると思われる。
 		if updateAttrs, ok := scope.InstanceGet("gorm:update_attrs"); ok {
 			// Sort the column names so that the generated SQL is the same every time.
 			updateMap := updateAttrs.(map[string]interface{})
@@ -80,8 +82,11 @@ func updateCallback(scope *Scope) {
 							sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
 						}
 					} else if relationship := field.Relationship; relationship != nil && relationship.Kind == "belongs_to" {
+						// Memo: Author fieldでPostのAuthorIDを更新
 						for _, foreignKey := range relationship.ForeignDBNames {
+							// Memo: foreignKey = "author_id"
 							if foreignField, ok := scope.FieldByName(foreignKey); ok && !scope.changeableField(foreignField) {
+								// Memo: foreignField = AuthroID
 								sqls = append(sqls,
 									fmt.Sprintf("%v = %v", scope.Quote(foreignField.DBName), scope.AddToVars(foreignField.Field.Interface())))
 							}
