@@ -3,12 +3,10 @@
 - [ ] _test全部読む
 - [ ] Association(), Related()
 - [ ] join table handler
-- [ ] `INSERT INTO `post_tags` (`post_id`,`tag_id`) SELECT 1,1 FROM DUAL WHERE NOT EXISTS (SELECT * FROM `post_tags` WHERE `post_id` = 1 AND `tag_id` = 1)` このSQLしらべておく
+- [ ] `INSERT INTO` `post_tags` (`post_id`,`tag_id`) SELECT 1,1 FROM DUAL WHERE NOT EXISTS (SELECT * FROM `post_tags` WHERE `post_id` = 1 AND `tag_id` = 1)` このSQLしらべておく
 - [ ] callbackのRegister
 - [ ] search.Scope.Unscopedのやくわりについて
 - [ ] callback一通りよんで、今のmodelで説明できるかかためる。そうするとmodelの紹介かける。
-
-
 
 
 本記事では、goのORM library [gorm](https://github.com/jinzhu/gorm)のAPIについて解説していきます。
@@ -476,6 +474,25 @@ db.Where("author_id = ?",
 //    ORDER BY `posts`.`id` ASC LIMIT 1;
 ```
 
+## Update
+
+### callback
+
+```go
+// Define callbacks for updating
+func init() {
+	DefaultCallback.Update().Register("gorm:assign_updating_attributes", assignUpdatingAttributesCallback)
+	DefaultCallback.Update().Register("gorm:begin_transaction", beginTransactionCallback)
+	DefaultCallback.Update().Register("gorm:before_update", beforeUpdateCallback)
+	DefaultCallback.Update().Register("gorm:save_before_associations", saveBeforeAssociationsCallback)
+	DefaultCallback.Update().Register("gorm:update_time_stamp", updateTimeStampForUpdateCallback)
+	DefaultCallback.Update().Register("gorm:update", updateCallback)
+	DefaultCallback.Update().Register("gorm:save_after_associations", saveAfterAssociationsCallback)
+	DefaultCallback.Update().Register("gorm:after_update", afterUpdateCallback)
+	DefaultCallback.Update().Register("gorm:commit_or_rollback_transaction", commitOrRollbackTransactionCallback)
+}
+```
+[https://github.com/jinzhu/gorm/blob/v1.9.11/callback_update.go#L11-L21]
 
 
 
@@ -676,7 +693,11 @@ DB単位の設定なので、必要な場合だけ許可するようにもでき
 * `gorm:order_by_primary_key` : Firstのorder指定で利用
 * `gorm:only_preload`:  query callbackの処理をおこなわずにreturnする(どこで設定???)
 * `gorm:query_destination`:  Find()の結果のbind先を変更。
+
 * `gorm:update_interface`: update時のfieldを指定
+* `gorm:update_column`: ???
+* `gorm:update_attrs`: ???
+* `gorm:ignore_protected_attrs`: ??? Setするコードしか存在していない
 
 * `gorm:started_transaction`: `Scope.db.db`(保持しているConnection)がtransactionのときtrue
 * `skip_bindvar`: SQLのplaceholderを`?`固定にする。MySQLの場合はglobalでこのoptionをいれても問題なさそう。
