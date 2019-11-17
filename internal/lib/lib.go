@@ -2,10 +2,8 @@ package lib
 
 import (
 	"fmt"
-	"io"
 	"net/url"
 	"os"
-	"text/template"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
@@ -31,27 +29,7 @@ func Connect() *gorm.DB {
 		panic(err)
 	}
 	db.LogMode(true)
+	db = db.Set("skip_bindvar", true)
 
 	return db
-}
-
-func GenerateDBConf(w io.Writer) error {
-	const src = `# goose
-development:
-  driver: mysql
-  open: {{.User}}:{{.Pass}}@tcp({{.Host}}:{{.Port}})/{{.Name}}
-`
-	t, err := template.New("dbconfig").Parse(src)
-	if err != nil {
-		return err
-	}
-	return t.Execute(w, struct {
-		User, Pass, Host, Port, Name string
-	}{
-		User: os.Getenv("DB_USER"),
-		Pass: os.Getenv("DB_PASS"),
-		Host: os.Getenv("DB_HOST"),
-		Port: os.Getenv("DB_PORT"),
-		Name: os.Getenv("DB_NAME"),
-	})
 }

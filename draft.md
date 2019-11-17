@@ -160,6 +160,321 @@ transactionが張られていない場合はtransactionを張ります。
 
 ## Query
 
+### Find
+
+#### callback
+
+```go
+// Define callbacks for querying
+func init() {
+	DefaultCallback.Query().Register("gorm:query", queryCallback)
+	DefaultCallback.Query().Register("gorm:preload", preloadCallback)
+	DefaultCallback.Query().Register("gorm:after_query", afterQueryCallback)
+}
+```
+[https://github.com/jinzhu/gorm/blob/v1.9.11/callback_query.go#L9-L14]
+
+findのcallbackは3つで、Valueのcallback, associationを取得するpreload callback, hookを呼び出すcallbackで構成されています。
+
+##### `queryCallback`
+
+```go
+// queryCallback used to query data from database
+func queryCallback(scope *Scope) {
+	if _, skip := scope.InstanceGet("gorm:skip_query_callback"); skip {
+		return
+	}
+
+	//we are only preloading relations, dont touch base model
+	if _, skip := scope.InstanceGet("gorm:only_preload"); skip {
+		return
+	}
+
+	defer scope.trace(scope.db.nowFunc())
+
+	var (
+		isSlice, isPtr bool
+		resultType     reflect.Type
+		results        = scope.IndirectValue()
+	)
+
+	if orderBy, ok := scope.Get("gorm:order_by_primary_key"); ok {
+		if primaryField := scope.PrimaryField(); primaryField != nil {
+			scope.Search.Order(fmt.Sprintf("%v.%v %v", scope.QuotedTableName(), scope.Quote(primaryField.DBName), orderBy))
+		}
+	}
+
+	if value, ok := scope.Get("gorm:query_destination"); ok {
+		results = indirect(reflect.ValueOf(value))
+	}
+
+	if kind := results.Kind(); kind == reflect.Slice {
+		isSlice = true
+		resultType = results.Type().Elem()
+		results.Set(reflect.MakeSlice(results.Type(), 0, 0))
+
+		if resultType.Kind() == reflect.Ptr {
+			isPtr = true
+			resultType = resultType.Elem()
+		}
+	} else if kind != reflect.Struct {
+		scope.Err(errors.New("unsupported destination, should be slice or struct"))
+		return
+	}
+
+	scope.prepareQuerySQL()
+
+	if !scope.HasError() {
+		scope.db.RowsAffected = 0
+		if str, ok := scope.Get("gorm:query_option"); ok {
+			scope.SQL += addExtraSpaceIfExist(fmt.Sprint(str))
+		}
+
+		if rows, err := scope.SQLDB().Query(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
+			defer rows.Close()
+
+			columns, _ := rows.Columns()
+			for rows.Next() {
+				scope.db.RowsAffected++
+
+				elem := results
+				if isSlice {
+					elem = reflect.New(resultType).Elem()
+				}
+
+				// Memo: resultsが[]stringだと scope.New(string).Fields()だけど問題ないのか
+				// => scope.GetModelStructはvalueがstruct以外だと空を返すので、問題ない
+				scope.scan(rows, columns, scope.New(elem.Addr().Interface()).Fields())
+
+				if isSlice {
+					if isPtr {
+						results.Set(reflect.Append(results, elem.Addr()))
+					} else {
+						results.Set(reflect.Append(results, elem))
+					}
+				}
+			}
+
+			if err := rows.Err(); err != nil {
+				scope.Err(err)
+			} else if scope.db.RowsAffected == 0 && !isSlice {
+				scope.Err(ErrRecordNotFound)
+			}
+		}
+	}
+}
+```
+[https://github.com/jinzhu/gorm/blob/v1.9.11/callback_query.go#L17-L98]
+
+scopeに設定されている条件(Where,Join,Group...)からSQLを生成して、Databaseに発行します。Queryの場合でも、`RowsAffected`をincrementしています。sliceの場合見つからなくても`RecordNotFound`errorが返らない理由も最後のifからわかります。
+`scope.scan()`の中では最終的には`database/sql.Rows.Scan()`を呼び出しています。
+gormのreflectionを利用した、scanの実装も追いたいのですが、あまりにも長くなるので、この記事では諦めます。
+(`**uint`のようなpointerのpointerをreflectionで扱う処理がでてくるのですが、追いきれませんでした。[https://github.com/jinzhu/gorm/blob/v1.9.11/scope.go#L500])
+
+
+#### `preloadCallback`
+
+```go
+// preloadCallback used to preload associations
+func preloadCallback(scope *Scope) {
+	if _, skip := scope.InstanceGet("gorm:skip_query_callback"); skip {
+		return
+	}
+
+	if ap, ok := scope.Get("gorm:auto_preload"); ok {
+		// If gorm:auto_preload IS NOT a bool then auto preload.
+		// Else if it IS a bool, use the value
+		if apb, ok := ap.(bool); !ok {
+			autoPreload(scope)
+		} else if apb {
+			autoPreload(scope)
+		}
+	}
+
+	if scope.Search.preload == nil || scope.HasError() {
+		return
+	}
+
+	var (
+		preloadedMap = map[string]bool{}
+		fields       = scope.Fields()
+	)
+
+	for _, preload := range scope.Search.preload {
+		var (
+			preloadFields = strings.Split(preload.schema, ".")
+			currentScope  = scope
+			currentFields = fields
+		)
+
+		for idx, preloadField := range preloadFields {
+			var currentPreloadConditions []interface{}
+
+			if currentScope == nil {
+				continue
+			}
+
+			// if not preloaded
+			if preloadKey := strings.Join(preloadFields[:idx+1], "."); !preloadedMap[preloadKey] {
+
+				// assign search conditions to last preload
+				if idx == len(preloadFields)-1 {
+					currentPreloadConditions = preload.conditions
+				}
+
+				for _, field := range currentFields {
+					if field.Name != preloadField || field.Relationship == nil {
+						continue
+					}
+
+
+					switch field.Relationship.Kind {
+					case "has_one":
+						currentScope.handleHasOnePreload(field, currentPreloadConditions)
+					case "has_many":
+						currentScope.handleHasManyPreload(field, currentPreloadConditions)
+					case "belongs_to":
+						currentScope.handleBelongsToPreload(field, currentPreloadConditions)
+					case "many_to_many":
+						currentScope.handleManyToManyPreload(field, currentPreloadConditions)
+					default:
+						scope.Err(errors.New("unsupported relation"))
+					}
+
+					preloadedMap[preloadKey] = true
+					break
+				}
+
+				if !preloadedMap[preloadKey] {
+					scope.Err(fmt.Errorf("can't preload field %s for %s", preloadField, currentScope.GetModelStruct().ModelType))
+					return
+				}
+			}
+
+			// preload next level
+			if idx < len(preloadFields)-1 {
+				currentScope = currentScope.getColumnAsScope(preloadField)
+				if currentScope != nil {
+					currentFields = currentScope.Fields()
+				}
+			}
+		}
+	}
+}
+
+func autoPreload(scope *Scope) {
+	for _, field := range scope.Fields() {
+		if field.Relationship == nil {
+			continue
+		}
+
+		if val, ok := field.TagSettingsGet("PRELOAD"); ok {
+			if preload, err := strconv.ParseBool(val); err != nil {
+				scope.Err(errors.New("invalid preload option"))
+				return
+			} else if !preload {
+				continue
+			}
+		}
+
+		scope.Search.Preload(field.Name)
+	}
+}
+
+```
+[https://github.com/jinzhu/gorm/blob/v1.9.11/callback_query_preload.go#L12-L115]
+association先のfiledを取得します。auto_preloadを指定しておくか、`db.Preload("Author.Reviews")`のようにassociation先のassociationをしておくと、Queryを発行してくれます。associationのfiledの`Relationship`がnilでないことが条件なので、うまくassociation先がloadされない場合は、`scope.GetModelStruct()`して、associationの分析が意図どおりにされているか確認すると原因がわかりそうです。
+
+`preloadCallback`実行後は、`AfterFind` Hookを呼び出して、Findは完了です。
+
+
+### `FirstOrInit`
+
+```go
+func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *DB {
+	c := s.clone()
+	if result := c.First(out, where...); result.Error != nil {
+		if !result.RecordNotFound() {
+			return result
+		}
+		c.NewScope(out).inlineCondition(where...).initialize()
+	} else {
+		c.NewScope(out).updatedAttrsWithValues(c.search.assignAttrs)
+	}
+	return c
+}
+
+func (scope *Scope) initialize() *Scope {
+	for _, clause := range scope.Search.whereConditions {
+		scope.updatedAttrsWithValues(clause["query"])
+	}
+	scope.updatedAttrsWithValues(scope.Search.initAttrs)
+	scope.updatedAttrsWithValues(scope.Search.assignAttrs)
+	return scope
+}
+
+```
+
+[https://github.com/jinzhu/gorm/blob/v1.9.11/main.go#L408-L419]
+
+Where条件でSelectして、Attrs/Assignで指定したfiledをValueに代入します。
+見つかっても、見つからなくてもINSERT処理は実行しません。
+AttrsとAssignの共通点はどちらもSelect時の条件には反映されないこと、違いは見つかったか見つからなかったかに応じてValueに代入されるかが変わることです。
+INSERT文を発行したくない場合には、`FirstOrCreate`ではなくこちらを利用するといいと思います。
+
+
+｜Where句|Insert|Attrs|Assign|
+| ----  | ---- | --- | ----- |
+| Found | No   | No  |  Yes  |
+| Not   | No   | Yes |  Yes  |
+
+
+### `FirstOrCreate`
+
+```go
+func (s *DB) FirstOrCreate(out interface{}, where ...interface{}) *DB {
+	c := s.clone()
+	if result := s.First(out, where...); result.Error != nil {
+		if !result.RecordNotFound() {
+			return result
+		}
+		return c.NewScope(out).inlineCondition(where...).initialize().callCallbacks(c.parent.callbacks.creates).db
+	} else if len(c.search.assignAttrs) > 0 {
+		return c.NewScope(out).InstanceSet("gorm:update_interface", c.search.assignAttrs).callCallbacks(c.parent.callbacks.updates).db
+	}
+	return c
+}
+
+```
+[https://github.com/jinzhu/gorm/blob/v1.9.11/main.go#L423-L434]
+
+Where句の条件でみつからなかった場合INSERT文が発行されます。
+INSERTする際は、Attrs/Assignで指定したfiledが反映されてCreateされます。
+見つかった場合、Assignを指定しているとUPDATE文が発行されます。
+
+
+｜Where句|Insert|Attrs|Assign|
+| ----  | ---- | --- | ----- |
+| Found | No   | No  |  Yes  |
+| No    | Yes  | Yes |  Yes  |
+
+
+### `SubQuery/QueryExpr`
+
+SubQueryを作る際などScopeに設定した条件からSQLがほしいときに利用します。SubQueryとQueryExprの違いは結果を`()`でかこってくれるかどうかだけです。
+メイン側の条件(Where句)が既に設定されている場合は、一度`DB.New()`を経由して条件をクリアしてから設定する必要があります。(したの場合は必要なし)
+
+
+```go
+db.Where("author_id = ?",
+    db.Table("authors").Where(model.Author{Name: "ymgyt"}).Select("id").Limit(1).SubQuery()
+).Set("gorm:auto_preload", true).First(&post2)
+
+// => SELECT * FROM `posts`
+//    WHERE (author_id = (
+//      SELECT id FROM `authors`  WHERE (`authors`.`name` = 'ymgyt') LIMIT 1))
+//    ORDER BY `posts`.`id` ASC LIMIT 1;
+```
 
 
 
@@ -167,7 +482,7 @@ transactionが張られていない場合はtransactionを張ります。
 ## Delete
 
 ### callback
-```go
+`eha``go
 // Define callbacks for deleting
 func init() {
 	DefaultCallback.Delete().Register("gorm:begin_transaction", beginTransactionCallback)
@@ -355,17 +670,16 @@ DB単位の設定なので、必要な場合だけ許可するようにもでき
 ### Scope setting
 
 #### instance 単位
-* `gorm:skip_query_callback` : ???
-* `gorm:only_preload`: ???
-* `gorm:order_by_primary_key` : ???
-* `gorm:query_destination`: ???
-* `gorm:started_transaction`: `Scope.db.db`(保持しているConnection)がtransactionのときtrue
-* `gorm:skip_bindvar`: ???
+* `gorm:skip_bindvar`: SubQuery
 * `gorm:skip_query_callback`: query callbackの処理をおこなわずにreturnする(どこで設定している???)
-* `gorm:only_preload`:  query callbackの処理をおこなわずにreturnする(どこで設定???)
-* `gorm:order_by_primary_key`:
-* `gorm:query_destination`:  Find()の結果のbind先を変更。
 
+* `gorm:order_by_primary_key` : Firstのorder指定で利用
+* `gorm:only_preload`:  query callbackの処理をおこなわずにreturnする(どこで設定???)
+* `gorm:query_destination`:  Find()の結果のbind先を変更。
+* `gorm:update_interface`: update時のfieldを指定
+
+* `gorm:started_transaction`: `Scope.db.db`(保持しているConnection)がtransactionのときtrue
+* `skip_bindvar`: SQLのplaceholderを`?`固定にする。MySQLの場合はglobalでこのoptionをいれても問題なさそう。
 
 #### DB単位
 

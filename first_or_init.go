@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
@@ -44,27 +43,23 @@ func main() {
 		PublishedAt: &now,
 	}
 
-	db = db.LogMode(true)
+	db = db.LogMode(false)
 	if err := db.Save(&post1).Error; err != nil {
 		panic(err)
 	}
 
+	feature := now.Add(time.Hour * 24 * 30 * 12 * 10)
 	db = db.LogMode(true)
 	var post2 model.Post
-	db = db.
-		Where(model.Post{ID: post1.ID}).
-		Preload("Author").
-		// Preload("Author.Reviews").
-		// Preload("Content").
-		// Preload("Meta").
-		// Preload("Comments").
-		// Preload("Tags").
-		// Set("gorm:auto_preload", true).
-		Set("gorm:query_option", "FOR UPDATE").
-		Find(&post2)
-	if db.Error != nil {
-		panic(db.Error)
+	err := db.Where(model.Post{Kind: model.NativeAd}).
+		Attrs("Title", "---").
+		Assign(model.Post{PublishedAt: &feature}).
+		FirstOrInit(&post2).Error
+	if err != nil {
+		panic(err)
 	}
-	fmt.Println(db.RowsAffected)
+	// spew.Dump(post2)
+
+	db.Where("author_id = ?", db.Table("authors").Where(model.Author{Name: "ymgyt"}).Select("id").Limit(1).SubQuery()).Set("gorm:auto_preload", true).First(&post2)
 	spew.Dump(post2)
 }
