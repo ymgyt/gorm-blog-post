@@ -4,11 +4,12 @@
 - [ ] Association(), Related()
 - [ ] join table handler
 - [ ] `INSERT INTO` `post_tags` (`post_id`,`tag_id`) SELECT 1,1 FROM DUAL WHERE NOT EXISTS (SELECT * FROM `post_tags` WHERE `post_id` = 1 AND `tag_id` = 1)` このSQLしらべておく
-- [ ] callbackのRegister
 - [ ] search.Scope.Unscopedのやくわりについて
 - [ ] callback一通りよんで、今のmodelで説明できるかかためる。そうするとmodelの紹介かける。
 - Association
 - Delete Nested
+- DB, Scope, GetModelStructの解説
+- Select Saveの挙動
 
 
 本記事では、goのORM library [gorm](https://github.com/jinzhu/gorm)のAPIについて解説していきます。
@@ -568,6 +569,21 @@ func deleteCallback(scope *Scope) {
 modelに`DeletedAt` fieldが定義されていれば、soft deleteを行います。定義されていなければScopeからWhere句を生成してDELETE文を発行します。
 そのあとは、`AfterDelete` Hookを呼んで、CommitOrRollbackします。
 
+## Association Mode
+
+- Association()呼ぶ前にModelに渡すstructにはprimary keyがあることが必須
+- Associaation()に渡したcolumn名でFieldがひけることがひつよう
+- column名のfieldにはRelationshipが必要。
+- supportしているmethodは
+  - Find
+  - Append
+  - Replace
+  - Delete
+  - Clear
+  - Count
+
+
+
 
 ## etc
 どこかに書くものたち
@@ -696,7 +712,7 @@ DB単位の設定なので、必要な場合だけ許可するようにもでき
 * `gorm:only_preload`:  query callbackの処理をおこなわずにreturnする(どこで設定???)
 * `gorm:query_destination`:  Find()の結果のbind先を変更。
 
-* `gorm:update_interface`: update時のfieldを指定
+* `gorm:update_interface`: update時のfieldを指定。`DB.Update(), DB.UpdateColumns(), DB.FirstOrCreate()`時に利用
 * `gorm:update_column`: ???
 * `gorm:update_attrs`: ???
 * `gorm:ignore_protected_attrs`: ??? Setするコードしか存在していない

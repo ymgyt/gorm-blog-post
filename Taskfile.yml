@@ -34,16 +34,16 @@ tasks:
       - MYSQL_PWD=${DB_PASS} mysql -u ${DB_USER} -h ${DB_HOST} -P ${DB_PORT} --protocol=tcp -e "CREATE DATABASE ${DB_NAME}"
 
   migration:
-    desc: apply migrations.
+    desc: Apply migrations.
     cmds:
       - migrate -database="mysql://${DB_USER}:${DB_PASS}@tcp(${DB_HOST}:${DB_PORT})/${DB_NAME}" -path=migrations up
 
   run:
-    desc: run example.
+    desc: Run example.
     cmds:
       - go run create.go
 
   debug:
-    desc: run delve.
+    desc: Run delve.
     cmds:
       - dlv debug create.go
